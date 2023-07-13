@@ -1,0 +1,134 @@
+/* JUST CHECKING THE DATABASE*/
+SELECT *
+FROM `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Deaths`
+WHERE continent is NOT NULL
+ORDER BY 3,4;
+
+SELECT location,date, total_cases, new_cases, total_deaths, population
+FROM `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Deaths`
+WHERE continent is NOT NULL
+      AND total_cases is NOT NULL 
+ORDER BY 1,2;
+
+/*LOOKING AT THE TOTAL CASE VS TOTAL DEATH (%) between 2021-01-30 and 2021-12-30 in the Nigeria*/
+/*This shows the likelihood of dying if you contract covid in the Nigeria*/
+SELECT 
+      location,date AS date_colume,total_cases,total_deaths,(total_deaths/total_cases)*100 AS Death_Percentage
+FROM
+     `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Deaths`
+WHERE location = 'Nigeria' 
+      AND date BETWEEN '2021-01-30' AND '2022-12-30'
+ORDER BY 1,2;
+
+/* Looking that total_case and population*/
+/* Shows the percentage of population that got covid 19 in Nigeria*/
+SELECT 
+      location,date,total_cases,population,(total_cases/population)*100 AS Percent_of_population_infected
+FROM
+     `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Deaths`
+WHERE location = 'Nigeria' 
+ORDER BY 1,2;
+
+/* Looking at the countries with highest infection rate compared to population*/
+SELECT 
+      location, population, MAX(total_cases) AS  Highest_Infection_count, MAX((total_cases/population))*100 AS Percent_Population_Infected
+FROM
+     `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Deaths`
+/*WHERE location = 'Nigeria' */
+GROUP BY 
+      location,population
+ORDER BY 
+      Percent_Population_Infected DESC;
+
+/* Showing the countries with Highest Death Count Per Population*/
+SELECT 
+      location, MAX(total_deaths) AS Total_Death_Count
+FROM
+     `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Deaths`
+     WHERE continent is NOT NULL
+      AND total_cases is NOT NULL 
+/*WHERE location = 'Nigeria' */
+GROUP BY 
+      location
+ORDER BY 
+      Total_Death_Count DESC;
+
+/* Shows the continent with the Highest Death Count*/
+/* Continent*/
+SELECT 
+      continent, MAX(total_deaths) AS Total_Death_Count
+FROM
+     `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Deaths`
+     WHERE continent is NOT NULL
+GROUP BY 
+      continent
+ORDER BY 
+      Total_Death_Count DESC;
+
+
+/* GLOBAL NUMBER*/
+
+SELECT SUM(new_cases) AS total_cases,SUM(new_deaths) AS total_deaths,SUM(new_deaths)/SUM(new_cases)*100 AS Death_Percentage
+FROM
+     `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Deaths`
+WHERE continent is NOT NULL
+--GROUP BY date
+order by 1,2;
+
+/* GLOBAL NUMBER BY COUNTRY*/
+SELECT location,SUM(new_cases) AS total_cases,SUM(new_deaths) AS total_deaths,ROUND(SAFE_DIVIDE(SUM(new_deaths),SUM(new_cases))*100,2) AS Death_Percentage
+FROM
+     `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Deaths`
+WHERE continent is NOT NULL
+GROUP BY date,location
+order by 1,2;
+
+
+
+/* looking at total_population vs total_vaccination*/
+/* USING CTE*/
+WITH PopvsVas AS (
+SELECT
+  DEATHS.continent,
+  DEATHS.location,
+  DEATHS.date,
+  DEATHS.population,
+  VACCINATIONS.new_vaccinations,
+  SUM(VACCINATIONS.new_vaccinations) OVER (PARTITION BY DEATHS.location ORDER BY DEATHS.location, DEATHS.date) AS RollingPeopleVaccinated,
+FROM
+  `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Deaths` AS DEATHS
+JOIN
+  `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Vacinnation` AS VACCINATIONS
+ON
+  DEATHS.location = VACCINATIONS.location
+  AND DEATHS.date = VACCINATIONS.date
+WHERE
+  DEATHS.continent IS NOT NULL
+--ORDER BY 2,3
+)
+SELECT *,(RollingPeopleVaccinated/population)*100
+FROM PopvsVas
+
+/* Creating View to store date for later visualization*/
+CREATE VIEW `exalted-stage-380111.My_First_SQL_Project_On_Covid.PopvsVas` AS
+SELECT
+  DEATHS.continent,
+  DEATHS.location,
+  DEATHS.date,
+  DEATHS.population,
+  VACCINATIONS.new_vaccinations,
+  SUM(VACCINATIONS.new_vaccinations) OVER (PARTITION BY DEATHS.location ORDER BY DEATHS.location, DEATHS.date) AS RollingPeopleVaccinated,
+FROM
+  `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Deaths` AS DEATHS
+JOIN
+  `exalted-stage-380111.My_First_SQL_Project_On_Covid.Covid_Vacinnation` AS VACCINATIONS
+ON
+  DEATHS.location = VACCINATIONS.location
+  AND DEATHS.date = VACCINATIONS.date
+WHERE
+  DEATHS.continent IS NOT NULL
+--ORDER BY 2,3
+SELECT *
+FROM `exalted-stage-380111.My_First_SQL_Project_On_Covid.PopvsVas`
+
+
